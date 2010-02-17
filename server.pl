@@ -84,11 +84,12 @@ while (my $client = $server->accept()) {
 		system 'rsync', '-avv', "root\@$ip:$path", "$ip/$path";
 		system 'git', 'add', "$ip/$path";
 	} elsif ( $command eq 'commit' ) {
-		system 'rsync', '-avv', "root\@$ip:$path", "$ip/$path";
+		system 'rsync', '-avv', "root\@$ip:$path", "$ip/$path" if $path;
 		$message ||= "$command $ip $path";
 		system 'git', 'commit', '-m', $message, "$ip/$path";
 	} elsif ( $command =~ m{(diff|status|log)} ) {
-		print $client `git $command $ip`;
+		my $opt = '--summary' if $command eq 'log';
+		print $client `git $command $opt $ip`;
 	} else {
 		print $client "Unknown command: $command\n";
 	}
