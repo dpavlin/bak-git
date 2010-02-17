@@ -30,13 +30,14 @@ my $server = IO::Socket::INET->new(
 ) || die $!;
 
 while (my $client = $server->accept()) {
-	my ($command,$path,$message) = split(/\s+/,<$client>,3);
+	my ($pwd,$command,$path,$message) = split(/\s+/,<$client>,4);
 	my $ip = $client->peerhost;
 
 	$message ||= '';
+	$path = "$pwd/$path" unless $path =~ m{^/};
 
 	if ( $command eq 'install' ) {
-		print $client '#!/bin/sh',$/,'echo $* | nc 10.60.0.92 9001',$/;
+		print $client '#!/bin/sh',$/,'echo `pwd` $* | nc 10.60.0.92 9001',$/;
 		next;
 	}
 
