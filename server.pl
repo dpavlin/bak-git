@@ -53,14 +53,20 @@ while (my $client = $server->accept()) {
 
 	mkpath "$ip/$dir" unless -e "$ip/$dir";
 
-	if ( $command eq 'add' ) {
-		warn 'rsync', "root\@$ip:$path", "$ip/$path";
-		system 'rsync', "root\@$ip:$path", "$ip/$path";
+	if ( ! $command ) {
+		system "find $ip -type f | sed 's,$ip,,' > /tmp/$ip.list";
+		system "rsync -avv --files-from /tmp/$ip.list root\@$ip:/ $ip/"
+	} elsif ( $command eq 'add' ) {
+		system 'rsync', '-avv', "root\@$ip:$path", "$ip/$path";
 		system 'git', 'add', "$ip/$path";
-	} else {
-		system 'rsync', "root\@$ip:$path", "$ip/$path";
+	} elsif ( $command eq 'commit' ) {
+		system 'rsync', '-avv', "root\@$ip:$path", "$ip/$path";
 		$message ||= "$command $ip $path";
 		system 'git', 'commit', '-m', $message, "$ip/$path";
+	} elsif ( $command =~ m{(diff|status|log)} ) {
+		print $client `git $command $ip`;
+	} else {
+		print $client "Unknown command: $command\n";
 	}
 
 }
