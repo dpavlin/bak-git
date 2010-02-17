@@ -1,7 +1,15 @@
 #!/usr/bin/perl
 
-# install on client with:
-# echo install | nc 10.60.0.92 9001 > bak ; chmod 755 bak
+=head1 bak-git
+
+Simpliest possible backup from remote host (with natcat as
+only depenency) to ad-hoc remote server
+
+Install on client with:
+
+  echo install | nc 10.60.0.92 9001 > bak ; chmod 755 bak
+
+=cut
 
 use warnings;
 use strict;
@@ -9,7 +17,7 @@ use autodie;
 use IO::Socket::INET;
 use File::Path;
 
-my $dir = '../backup';
+my $dir = shift @ARGV || die "usage: $0 /backup/directory\n";
 
 chdir $dir;
 system 'git init' unless -e '.git';
@@ -19,7 +27,7 @@ my $server = IO::Socket::INET->new(
 	LocalPort => 9001,
 	Listen    => SOMAXCONN,
 	Reuse     => 1
-);
+) || die $!;
 
 while (my $client = $server->accept()) {
 	my ($command,$path,$message) = split(/\s+/,<$client>,3);
