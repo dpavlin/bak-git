@@ -25,6 +25,8 @@ while (my $client = $server->accept()) {
 	my ($command,$path,$message) = split(/\s+/,<$client>,3);
 	my $ip = $client->peerhost;
 
+	$message ||= '';
+
 	if ( $command eq 'install' ) {
 		print $client '#!/bin/sh',$/,'echo $* | nc 10.60.0.92 9001',$/;
 		next;
@@ -48,9 +50,9 @@ while (my $client = $server->accept()) {
 		system 'git', 'add', "$ip/$path";
 	} else {
 		system 'rsync', "root\@$ip:$path", "$ip/$path";
+		$message ||= "$command $ip $path";
+		system 'git', 'commit', '-m', $message, "$ip/$path";
 	}
 
-	$message ||= "$command $ip $path";
-	system 'git', 'commit', '-m', $message, "$ip/$path";
 }
 
