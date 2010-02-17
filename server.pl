@@ -1,5 +1,8 @@
 #!/usr/bin/perl
 
+# install on client with:
+# echo install | nc 10.60.0.92 9001 > bak ; chmod 755 bak
+
 use warnings;
 use strict;
 use autodie;
@@ -21,6 +24,11 @@ my $server = IO::Socket::INET->new(
 while (my $client = $server->accept()) {
 	my ($command,$path,$message) = split(/\s+/,<$client>,3);
 	my $ip = $client->peerhost;
+
+	if ( $command eq 'install' ) {
+		print $client '#!/bin/sh',$/,'echo $* | nc 10.60.0.92 9001',$/;
+		next;
+	}
 
 	warn "$ip [$command] $path | $message\n";
 
