@@ -2,16 +2,14 @@
 
 =head1 bak-git
 
-Simpliest possible backup from remote host (with natcat as
-only depenency) to ad-hoc remote server
+Simple tracking of remote files in central git repository
+with only shell, netcat, rsync and ssh on client
 
-Install on client with:
+Start server, install on remote-host or upgrade with:
 
-  echo install | nc 127.0.0.1 9001 > bak ; chmod 755 bak
-
-Start server with:
-
-  ./server.pl /path/to/backup 127.0.0.1
+  ./bak-git-server.pl /path/to/backup 192.168.42.42
+	[--install remote-host]
+	[--upgrade]
 
 You will want to add following to C<~/.ssh/config>
 
@@ -26,9 +24,12 @@ use IO::Socket::INET;
 use File::Path;
 use Getopt::Long;
 
-my $install = 0;
+my $upgrade = 0;
+my $install;
+
 GetOptions(
-	'install!' => \$install,
+	'upgrade!'  => \$upgrade,
+	'install=s' => \$install,
 ) || die "$!\n";
 
 my ( $dir, $server_ip ) = @ARGV;
@@ -43,14 +44,20 @@ __SHELL_CLIENT__
 chdir $dir;
 system 'git init' unless -e '.git';
 
-if ( $install ) {
+if ( $upgrade || $install ) {
 	open(my $fh, '>', '/tmp/bak');
 	print $fh $shell_client;
 	close($fh);
+	chmod 0755, '/tmp/bak';
 
-	foreach my $hostname ( glob '*' ) {
+	my @hosts = grep { -d $_ } glob '*';
+	@hosts = ( $install ) if $install;
+
+	foreach my $hostname ( @hosts ) {
 		warn "install on $hostname\n";
+		system 'ssh-copy-id', "root\@$hostname" if ! -d $hostname;
 		system "scp /tmp/bak root\@$hostname:/usr/local/bin/";
+		system "ssh root\@$hostname apt-get install rsync";
 	}
 }
 
@@ -64,20 +71,11 @@ my $server = IO::Socket::INET->new(
 
 
 warn "dir: $dir listen: $server_ip:9001\n"
-	, "remote-host> echo install | nc $server_ip 9001 > bak ; chmod 755 bak\n"
 	, $shell_client
 ;
 
 while (my $client = $server->accept()) {
 	my ($hostname,$pwd,$command,$path,$message) = split(/\s+/,<$client>,5);
-
-	if ( $pwd eq 'install' ) {
-		warn "install on $hostname\n";
-		print $client $shell_client;
-		close($client);
-		system 'ssh-copy-id', "root\@$hostname" if ! -d $hostname;
-		next;
-	}
 
 	$message ||= '';
 	$path = "$pwd/$path" unless $path =~ m{^/};
