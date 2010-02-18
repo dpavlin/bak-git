@@ -90,6 +90,9 @@ while (my $client = $server->accept()) {
 	} elsif ( $command =~ m{(diff|status|log)} ) {
 		my $opt = '--summary' if $command eq 'log';
 		print $client `git $command $opt $ip`;
+	} elsif ( $command eq 'revert' ) {
+		print $client `git checkout -- $ip/$path`;
+		system 'rsync', '-avv', "$ip/$path", "root\@$ip:$path";
 	} else {
 		print $client "Unknown command: $command\n";
 	}
