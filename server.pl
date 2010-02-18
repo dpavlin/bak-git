@@ -31,7 +31,7 @@ $server_ip ||= '127.0.0.1';
 
 my $shell_client = <<__SHELL_CLIENT__;
 #!/bin/sh
-echo `pwd` \$* | nc $server_ip 9001
+echo `hostname -s` `pwd` \$* | nc $server_ip 9001
 __SHELL_CLIENT__
 
 chdir $dir;
@@ -52,44 +52,43 @@ warn "dir: $dir listen: $server_ip:9001\n"
 ;
 
 while (my $client = $server->accept()) {
-	my ($pwd,$command,$path,$message) = split(/\s+/,<$client>,4);
-	my $ip = $client->peerhost;
+	my ($hostname,$pwd,$command,$path,$message) = split(/\s+/,<$client>,5);
 
 	if ( $pwd eq 'install' ) {
-		warn "install on $ip\n";
+		warn "install on $hostname\n";
 		print $client $shell_client;
 		close($client);
-		system 'ssh-copy-id', "root\@$ip" if ! -d $ip;
+		system 'ssh-copy-id', "root\@$hostname" if ! -d $hostname;
 		next;
 	}
 
 	$message ||= '';
 	$path = "$pwd/$path" unless $path =~ m{^/};
 
-	warn "$ip [$command] $path | $message\n";
+	warn "$hostname [$command] $path | $message\n";
 
 
 	my $dir = $path;
 	$dir =~ s{/[^/]+$}{};
 
-	mkpath "$ip/$dir" unless -e "$ip/$dir";
+	mkpath "$hostname/$dir" unless -e "$hostname/$dir";
 
 	if ( ! $command ) {
-		system "find $ip -type f | sed 's,$ip,,' > /tmp/$ip.list";
-		system "rsync -avv --files-from /tmp/$ip.list root\@$ip:/ $ip/"
+		system "find $hostname -type f | sed 's,$hostname,,' > /tmp/$hostname.list";
+		system "rsync -avv --files-from /tmp/$hostname.list root\@$hostname:/ $hostname/"
 	} elsif ( $command eq 'add' ) {
-		system 'rsync', '-avv', "root\@$ip:$path", "$ip/$path";
-		system 'git', 'add', "$ip/$path";
+		system 'rsync', '-avv', "root\@$hostname:$path", "$hostname/$path";
+		system 'git', 'add', "$hostname/$path";
 	} elsif ( $command eq 'commit' ) {
-		system 'rsync', '-avv', "root\@$ip:$path", "$ip/$path" if $path;
-		$message ||= "$command $ip $path";
-		system 'git', 'commit', '-m', $message, "$ip/$path";
+		system 'rsync', '-avv', "root\@$hostname:$path", "$hostname/$path" if $path;
+		$message ||= "$command $hostname $path";
+		system 'git', 'commit', '-m', $message, "$hostname/$path";
 	} elsif ( $command =~ m{(diff|status|log)} ) {
 		my $opt = '--summary' if $command eq 'log';
-		print $client `git $command $opt $ip`;
+		print $client `git $command $opt $hostname`;
 	} elsif ( $command eq 'revert' ) {
-		print $client `git checkout -- $ip/$path`;
-		system 'rsync', '-avv', "$ip/$path", "root\@$ip:$path";
+		print $client `git checkout -- $hostname/$path`;
+		system 'rsync', '-avv', "$hostname/$path", "root\@$hostname:$path";
 	} else {
 		print $client "Unknown command: $command\n";
 	}
