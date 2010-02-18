@@ -59,6 +59,7 @@ while (my $client = $server->accept()) {
 		warn "install on $ip\n";
 		print $client $shell_client;
 		close($client);
+		system 'ssh-copy-id', "root\@$ip" if ! -d $ip;
 		next;
 	}
 
@@ -66,10 +67,6 @@ while (my $client = $server->accept()) {
 	$path = "$pwd/$path" unless $path =~ m{^/};
 
 	warn "$ip [$command] $path | $message\n";
-
-	if ( ! -d $ip ) {
-		system 'ssh-copy-id', "root\@$ip";
-	}
 
 
 	my $dir = $path;
