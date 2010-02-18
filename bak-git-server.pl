@@ -74,6 +74,12 @@ warn "dir: $dir listen: $server_ip:9001\n"
 	, $shell_client
 ;
 
+sub pull_changes {
+	my $hostname = shift;
+	system "find $hostname -type f | sed 's,$hostname,,' > /tmp/$hostname.list";
+	system "rsync -avv --files-from /tmp/$hostname.list root\@$hostname:/ $hostname/"
+}
+
 while (my $client = $server->accept()) {
 	my ($hostname,$pwd,$command,$path,$message) = split(/\s+/,<$client>,5);
 
@@ -89,8 +95,7 @@ while (my $client = $server->accept()) {
 	mkpath "$hostname/$dir" unless -e "$hostname/$dir";
 
 	if ( ! $command ) {
-		system "find $hostname -type f | sed 's,$hostname,,' > /tmp/$hostname.list";
-		system "rsync -avv --files-from /tmp/$hostname.list root\@$hostname:/ $hostname/"
+		pull_changes $hostname;
 	} elsif ( $command eq 'add' ) {
 		system 'rsync', '-avv', "root\@$hostname:$path", "$hostname/$path";
 		system 'git', 'add', "$hostname/$path";
@@ -100,6 +105,7 @@ while (my $client = $server->accept()) {
 		system 'git', 'commit', '-m', $message, "$hostname/$path";
 	} elsif ( $command =~ m{(diff|status|log)} ) {
 		my $opt = '--summary' if $command eq 'log';
+		pull_changes $hostname if $command eq 'diff';
 		print $client `git $command $opt $hostname`;
 	} elsif ( $command eq 'revert' ) {
 		print $client `git checkout -- $hostname/$path`;
