@@ -57,7 +57,7 @@ if ( $upgrade || $install ) {
 		warn "install on $hostname\n";
 		system 'ssh-copy-id', "root\@$hostname" if ! -d $hostname;
 		system "scp /tmp/bak root\@$hostname:/usr/local/bin/";
-		system "ssh root\@$hostname apt-get install rsync";
+		system "ssh root\@$hostname apt-get install -y rsync";
 	}
 }
 
@@ -81,28 +81,27 @@ sub pull_changes {
 }
 
 while (my $client = $server->accept()) {
-	my ($hostname,$pwd,$command,$path,$message) = split(/\s+/,<$client>,5);
+	my ($hostname,$pwd,$command,$rel_path,$message) = split(/\s+/,<$client>,5);
+
+	my $path = $rel_path =~ m{^/} ? $rel_path : "$pwd/$rel_path";
 
 	$message ||= '';
-	$path = "$pwd/$path" unless $path =~ m{^/};
-
 	warn "$hostname [$command] $path | $message\n";
-
+	$message ||= "$hostname [$command] $path";
 
 	my $dir = $path;
 	$dir =~ s{/[^/]+$}{};
 
-	mkpath "$hostname/$dir" unless -e "$hostname/$dir";
-
 	if ( ! $command ) {
 		pull_changes $hostname;
 	} elsif ( $command eq 'add' ) {
+		mkpath "$hostname/$dir" unless -e "$hostname/$dir";
 		system 'rsync', '-avv', "root\@$hostname:$path", "$hostname/$path";
 		system 'git', 'add', "$hostname/$path";
 	} elsif ( $command eq 'commit' ) {
-		system 'rsync', '-avv', "root\@$hostname:$path", "$hostname/$path" if $path;
-		$message ||= "$command $hostname $path";
-		system 'git', 'commit', '-m', $message, "$hostname/$path";
+		pull_changes $hostname;
+		system 'git', 'commit', '-m', $message,
+			-e "$hostname/$path" ? "$hostname/$path" : $hostname;
 	} elsif ( $command =~ m{(diff|status|log)} ) {
 		my $opt = '--summary' if $command eq 'log';
 		pull_changes $hostname if $command eq 'diff';
