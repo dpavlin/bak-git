@@ -24,6 +24,12 @@ use strict;
 use autodie;
 use IO::Socket::INET;
 use File::Path;
+use Getopt::Long;
+
+my $install = 0;
+GetOptions(
+	'install!' => \$install,
+) || die "$!\n";
 
 my ( $dir, $server_ip ) = @ARGV;
 die "usage: $0 /backup/directory\n" unless $dir;
@@ -36,6 +42,17 @@ __SHELL_CLIENT__
 
 chdir $dir;
 system 'git init' unless -e '.git';
+
+if ( $install ) {
+	open(my $fh, '>', '/tmp/bak');
+	print $fh $shell_client;
+	close($fh);
+
+	foreach my $hostname ( glob '*' ) {
+		warn "install on $hostname\n";
+		system "scp /tmp/bak root\@$hostname:/usr/local/bin/";
+	}
+}
 
 my $server = IO::Socket::INET->new(
 	Proto     => 'tcp',
