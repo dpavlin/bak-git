@@ -81,7 +81,9 @@ sub pull_changes {
 }
 
 while (my $client = $server->accept()) {
-	my ($hostname,$pwd,$command,$rel_path,$message) = split(/\s+/,<$client>,5);
+	my $line = <$client>;
+	warn "<<< $line\n";
+	my ($hostname,$pwd,$command,$rel_path,$message) = split(/\s+/,$line,5);
 
 	my $path = $rel_path =~ m{^/} ? $rel_path : "$pwd/$rel_path";
 
@@ -92,22 +94,31 @@ while (my $client = $server->accept()) {
 	my $dir = $path;
 	$dir =~ s{/[^/]+$}{};
 
+	sub git {
+		my $args = join(' ',@_);
+		warn "# git $args\n";
+		my $out = `git $args`;
+		warn "$out\n# [", length($out), " bytes]\n" if defined $out;
+		return $out;
+	}
+
 	if ( ! $command ) {
 		pull_changes $hostname;
 	} elsif ( $command eq 'add' ) {
 		mkpath "$hostname/$dir" unless -e "$hostname/$dir";
 		system 'rsync', '-avv', "root\@$hostname:$path", "$hostname/$path";
-		system 'git', 'add', "$hostname/$path";
+		print $client git 'add', "$hostname/$path";
 	} elsif ( $command eq 'commit' ) {
 		pull_changes $hostname;
-		system 'git', 'commit', '-m', $message,
-			-e "$hostname/$path" ? "$hostname/$path" : $hostname;
+		print $client git( 'commit', '-m', $message,
+			( -e "$hostname/$path" ? "$hostname/$path" : $hostname )
+		);
 	} elsif ( $command =~ m{(diff|status|log)} ) {
-		my $opt = '--summary' if $command eq 'log';
+		$command .= ' --summary' if $command eq 'log';
 		pull_changes $hostname if $command eq 'diff';
-		print $client `git $command $opt $hostname`;
+		print $client git($command,$hostname);
 	} elsif ( $command eq 'revert' ) {
-		print $client `git checkout -- $hostname/$path`;
+		print $client git "checkout -- $hostname/$path";
 		system 'rsync', '-avv', "$hostname/$path", "root\@$hostname:$path";
 	} else {
 		print $client "Unknown command: $command\n";
