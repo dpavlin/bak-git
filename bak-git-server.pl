@@ -15,6 +15,19 @@ You will want to add following to C<~/.ssh/config>
 
   RemoteForward 9001 localhost:9001
 
+bak command overview:
+
+  bak add /path
+  bak commit [/path [message]]
+  bak diff
+  bak status
+  bak log
+
+  bak ch[anges]
+  bak revert /path
+
+  bak - push all changed files to server
+
 =cut
 
 use warnings;
@@ -113,8 +126,9 @@ while (my $client = $server->accept()) {
 		print $client git( 'commit', '-m', $message,
 			( -e "$hostname/$path" ? "$hostname/$path" : $hostname )
 		);
-	} elsif ( $command =~ m{(diff|status|log)} ) {
-		$command .= ' --summary' if $command eq 'log';
+	} elsif ( $command =~ m{(diff|status|log|ch)} ) {
+		$command .= ' --stat' if $command eq 'log';
+		$command = 'log --patch-with-stat' if $command =~ m/^ch/;
 		pull_changes $hostname if $command eq 'diff';
 		print $client git($command,$hostname);
 	} elsif ( $command eq 'revert' ) {
