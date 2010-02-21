@@ -123,7 +123,8 @@ while (my $client = $server->accept()) {
 		print $client git 'add', "$hostname/$path";
 	} elsif ( $command eq 'commit' ) {
 		pull_changes $hostname;
-		print $client git( 'commit', '-m', $message,
+		$message =~ s/'/\\'/g;
+		print $client git( "commit -m '$message' ",
 			( -e "$hostname/$path" ? "$hostname/$path" : $hostname )
 		);
 	} elsif ( $command =~ m{(diff|status|log|ch)} ) {
