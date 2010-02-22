@@ -19,9 +19,9 @@ bak command overview:
 
   bak add /path
   bak commit [/path [message]]
-  bak diff
-  bak status
-  bak log
+  bak diff [/path]
+  bak status [/path]
+  bak log [/path]
 
   bak ch[anges]
   bak revert /path
@@ -107,6 +107,8 @@ while (my $client = $server->accept()) {
 	my $dir = $path;
 	$dir =~ s{/[^/]+$}{};
 
+	my $backup_path = -e "$hostname/$path" ? "$hostname/$path" : $hostname;
+
 	sub git {
 		my $args = join(' ',@_);
 		warn "# git $args\n";
@@ -124,14 +126,13 @@ while (my $client = $server->accept()) {
 	} elsif ( $command eq 'commit' ) {
 		pull_changes $hostname;
 		$message =~ s/'/\\'/g;
-		print $client git( "commit -m '$message' ",
-			( -e "$hostname/$path" ? "$hostname/$path" : $hostname )
-		);
+		print $client git( "commit -m '$message' $backup_path" );
 	} elsif ( $command =~ m{(diff|status|log|ch)} ) {
 		$command .= ' --stat' if $command eq 'log';
 		$command = 'log --patch-with-stat' if $command =~ m/^ch/;
 		pull_changes $hostname if $command eq 'diff';
-		print $client git($command,$hostname);
+		# commands without path will show host-wide status/changes
+		print $client git($command, $rel_path ? $backup_path : $hostname);
 	} elsif ( $command eq 'revert' ) {
 		print $client git "checkout -- $hostname/$path";
 		system 'rsync', '-avv', "$hostname/$path", "root\@$hostname:$path";
