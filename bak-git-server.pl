@@ -46,7 +46,7 @@ GetOptions(
 ) || die "$!\n";
 
 my ( $dir, $server_ip ) = @ARGV;
-die "usage: $0 /backup/directory\n" unless $dir;
+die "usage: $0 /backup/directory 127.0.0.1\n" unless $dir;
 $server_ip ||= '127.0.0.1';
 
 my $shell_client = <<__SHELL_CLIENT__;
