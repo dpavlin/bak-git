@@ -51,7 +51,7 @@ $server_ip ||= '127.0.0.1';
 
 my $shell_client = <<__SHELL_CLIENT__;
 #!/bin/sh
-echo `hostname -s` `pwd` \$* | nc $server_ip 9001
+echo \$USER/\$SUDO_USER `hostname -s` `pwd` \$* | nc $server_ip 9001
 __SHELL_CLIENT__
 
 chdir $dir;
@@ -96,7 +96,7 @@ sub pull_changes {
 while (my $client = $server->accept()) {
 	my $line = <$client>;
 	warn "<<< $line\n";
-	my ($hostname,$pwd,$command,$rel_path,$message) = split(/\s+/,$line,5);
+	my ($user,$hostname,$pwd,$command,$rel_path,$message) = split(/\s+/,$line,5);
 
 	my $path = $rel_path =~ m{^/} ? $rel_path : "$pwd/$rel_path";
 
@@ -126,7 +126,8 @@ while (my $client = $server->accept()) {
 	} elsif ( $command eq 'commit' ) {
 		pull_changes $hostname;
 		$message =~ s/'/\\'/g;
-		print $client git( "commit -m '$message' $backup_path" );
+		$user =~ s/\/$//;
+		print $client git( "commit -m '$message' --author '$user <$hostname>' $backup_path" );
 	} elsif ( $command =~ m{(diff|status|log|ch)} ) {
 		$command .= ' --stat' if $command eq 'log';
 		$command = 'log --patch-with-stat' if $command =~ m/^ch/;
