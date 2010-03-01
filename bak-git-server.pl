@@ -19,12 +19,12 @@ bak command overview:
 
   bak add /path
   bak commit [/path [message]]
-  bak diff [/path]
+  bak diff [host:][/path]
   bak status [/path]
   bak log [/path]
 
   bak ch[anges]
-  bak revert /path
+  bak revert [host:]/path
 
   bak - push all changed files to server
 
@@ -99,6 +99,7 @@ while (my $client = $server->accept()) {
 	warn "<<< $line\n";
 	my ($user,$hostname,$pwd,$command,$rel_path,$message) = split(/\s+/,$line,5);
 
+	my $on_host = $1 if $rel_path =~ s/^([^:]+):(.+)$/$2/ && -e $1;
 	my $path = $rel_path =~ m{^/} ? $rel_path : "$pwd/$rel_path";
 
 	$message ||= '';
@@ -133,11 +134,23 @@ while (my $client = $server->accept()) {
 		$command .= ' --stat' if $command eq 'log';
 		$command = 'log --patch-with-stat' if $command =~ m/^ch/;
 		pull_changes $hostname if $command eq 'diff';
-		# commands without path will show host-wide status/changes
-		print $client git($command, $rel_path ? $backup_path : $hostname);
+		if ( $on_host ) {
+			system 'rsync', '-avv', "root\@$on_host:$path", "$on_host/$path";
+			open(my $diff, '-|', "diff -uw $hostname$path $on_host$path");
+			while(<$diff>) {
+				print $client $_;
+			}
+		} else {
+			# commands without path will show host-wide status/changes
+			print $client git($command, $rel_path ? $backup_path : $hostname);
+		}
 	} elsif ( $command eq 'revert' ) {
-		print $client git "checkout -- $hostname/$path";
-		system 'rsync', '-avv', "$hostname/$path", "root\@$hostname:$path";
+		if ( $on_host ) {
+			system 'rsync', '-avv', "$on_host/$path", "root\@$hostname:$path";
+		} else {
+			print $client git "checkout -- $hostname/$path";
+			system 'rsync', '-avv', "$hostname/$path", "root\@$hostname:$path";
+		}
 	} else {
 		print $client "Unknown command: $command\n";
 	}

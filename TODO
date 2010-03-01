@@ -1,4 +1,4 @@
 + commit --author support
++ diff/revert from another host:/paths/
 - bak ls
 - daily cron job to create branch with uncommited changes
-- diff/merge with different host:/paths/
