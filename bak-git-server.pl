@@ -95,6 +95,7 @@ sub pull_changes {
 
 while (my $client = $server->accept()) {
 	my $line = <$client>;
+	chomp($line);
 	warn "<<< $line\n";
 	my ($user,$hostname,$pwd,$command,$rel_path,$message) = split(/\s+/,$line,5);
 
