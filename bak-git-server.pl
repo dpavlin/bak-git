@@ -97,7 +97,7 @@ while (my $client = $server->accept()) {
 	my $line = <$client>;
 	chomp($line);
 	warn "<<< $line\n";
-	my ($user,$hostname,$pwd,$command,$rel_path,$message) = split(/\s+/,$line,5);
+	my ($user,$hostname,$pwd,$command,$rel_path,$message) = split(/\s+/,$line,6);
 
 	my $on_host = $1 if $rel_path =~ s/^([^:]+):(.+)$/$2/ && -e $1;
 	my $path = $rel_path =~ m{^/} ? $rel_path : "$pwd/$rel_path";
