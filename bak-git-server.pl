@@ -136,7 +136,7 @@ while (my $client = $server->accept()) {
 		pull_changes $hostname if $command eq 'diff';
 		if ( $on_host ) {
 			system 'rsync', '-avv', "root\@$on_host:$path", "$on_host/$path";
-			open(my $diff, '-|', "diff -uw $hostname$path $on_host$path");
+			open(my $diff, '-|', "diff -Nuw $hostname$path $on_host$path");
 			while(<$diff>) {
 				print $client $_;
 			}
