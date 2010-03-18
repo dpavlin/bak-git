@@ -102,9 +102,9 @@ while (my $client = $server->accept()) {
 	my $on_host = $1 if $rel_path =~ s/^([^:]+):(.+)$/$2/ && -e $1;
 	my $path = $rel_path =~ m{^/} ? $rel_path : "$pwd/$rel_path";
 
-	$message ||= '';
-	warn "$hostname [$command] $path | $message\n";
-	$message ||= "$hostname [$command] $path";
+	warn "$hostname [$command] $on_host:$path | $message\n";
+	$message ||= "$path [$command]";
+	$message = "$hostname: $message";
 
 	my $dir = $path;
 	$dir =~ s{/[^/]+$}{};
