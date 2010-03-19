@@ -99,7 +99,15 @@ while (my $client = $server->accept()) {
 	warn "<<< $line\n";
 	my ($user,$hostname,$pwd,$command,$rel_path,$message) = split(/\s+/,$line,6);
 
-	my $on_host = $1 if $rel_path =~ s/^([^:]+):(.+)$/$2/ && -e $1;
+	my $on_host = '';
+	if ( $rel_path =~ s/^([^:]+):(.+)$/$2/ ) {
+		if ( -e $1 ) {
+			$on_host = $1;
+		} else {
+			print $client "host $1 doesn't exist in backup\n";
+			next;
+		}
+	}
 	my $path = $rel_path =~ m{^/} ? $rel_path : "$pwd/$rel_path";
 
 	warn "$hostname [$command] $on_host:$path | $message\n";
