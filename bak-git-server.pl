@@ -90,6 +90,11 @@ warn "dir: $dir listen: $server_ip:9001\n"
 sub pull_changes {
 	my $hostname = shift;
 	system "find $hostname -type f | sed 's,$hostname,,' > /tmp/$hostname.list";
+	if ( @_ ) {
+		open(my $files, '>>', "/tmp/$hostname.list");
+		print $files "$_\n" foreach @_;
+		close($files);
+	}
 	system "rsync -avv --files-from /tmp/$hostname.list root\@$hostname:/ $hostname/"
 }
 
@@ -141,7 +146,7 @@ while (my $client = $server->accept()) {
 	} elsif ( $command =~ m{(diff|status|log|ch)} ) {
 		$command .= ' --stat' if $command eq 'log';
 		$command = 'log --patch-with-stat' if $command =~ m/^ch/;
-		pull_changes $hostname if $command eq 'diff';
+		pull_changes( $hostname, $path ) if $command eq 'diff';
 		if ( $on_host ) {
 			system 'rsync', '-avv', "root\@$on_host:$path", "$on_host/$path";
 			open(my $diff, '-|', "diff -Nuw $hostname$path $on_host$path");
