@@ -146,7 +146,7 @@ while (my $client = $server->accept()) {
 	} elsif ( $command =~ m{(diff|status|log|ch)} ) {
 		$command .= ' --stat' if $command eq 'log';
 		$command = 'log --patch-with-stat' if $command =~ m/^ch/;
-		pull_changes( $hostname, $path ) if $command eq 'diff';
+		pull_changes( $hostname ) if $command eq 'diff';
 		if ( $on_host ) {
 			system 'rsync', '-avv', "root\@$on_host:$path", "$on_host/$path";
 			open(my $diff, '-|', "diff -Nuw $hostname$path $on_host$path");
