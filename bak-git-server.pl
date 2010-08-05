@@ -116,6 +116,9 @@ while (my $client = $server->accept()) {
 	my $path = $rel_path =~ m{^/} ? $rel_path : "$pwd/$rel_path";
 
 	warn "$hostname [$command] $on_host:$path | $message\n";
+
+	my $args_message = $message;
+
 	$message ||= "$path [$command]";
 	$message = "$hostname: $message";
 
@@ -136,8 +139,14 @@ while (my $client = $server->accept()) {
 		pull_changes $hostname;
 	} elsif ( $command eq 'add' ) {
 		mkpath "$hostname/$dir" unless -e "$hostname/$dir";
-		system 'rsync', '-avv', "root\@$hostname:$path", "$hostname/$path";
-		print $client git 'add', "$hostname/$path";
+		while ( $path ) {
+			system 'rsync', '-avv', "root\@$hostname:$path", "$hostname/$path";
+			print $client git 'add', "$hostname/$path";
+
+			$args_message =~ s/^(.+)\b// || last;
+			$path = $1;
+			warn "? $path";
+		}
 	} elsif ( $command eq 'commit' ) {
 		pull_changes $hostname;
 		$message =~ s/'/\\'/g;
