@@ -164,7 +164,11 @@ while (my $client = $server->accept()) {
 			}
 		} else {
 			# commands without path will show host-wide status/changes
-			print $client git($command, $rel_path ? $backup_path : $hostname);
+			my $backup_path = $rel_path ? $backup_path : "$hostname/";
+			# hostname must end with / to prevent error from git:
+			# ambiguous argument 'arh-hw': both revision and filename
+			# to support branches named as hosts
+			print $client git($command, $backup_path);
 		}
 	} elsif ( $command eq 'revert' ) {
 		if ( $on_host ) {
