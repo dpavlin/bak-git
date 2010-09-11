@@ -51,7 +51,7 @@ $server_ip ||= '127.0.0.1';
 
 my $shell_client = <<__SHELL_CLIENT__;
 #!/bin/sh
-echo \$USER/\$SUDO_USER `hostname -s` `pwd` \$* | nc $server_ip 9001
+echo \$USER/\$SUDO_USER `hostname` `pwd` \$* | nc $server_ip 9001
 __SHELL_CLIENT__
 
 chdir $dir;
@@ -103,6 +103,7 @@ while (my $client = $server->accept()) {
 	chomp($line);
 	warn "<<< $line\n";
 	my ($user,$hostname,$pwd,$command,$rel_path,$message) = split(/\s+/,$line,6);
+	$hostname =~ s/\..+$//;
 
 	my $on_host = '';
 	if ( $rel_path =~ s/^([^:]+):(.+)$/$2/ ) {
