@@ -28,6 +28,8 @@ bak command overview:
 
   bak - push all changed files to server
 
+See L<http://blog.rot13.org/bak-git> for more information
+
 =cut
 
 use warnings;
