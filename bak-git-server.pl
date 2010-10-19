@@ -168,7 +168,7 @@ while (my $client = $server->accept()) {
 			}
 		} else {
 			# commands without path will show host-wide status/changes
-			my $backup_path = $rel_path ? $backup_path : "$hostname/";
+			my $backup_path = $path ? "$hostname/$path" : "$hostname/";
 			# hostname must end with / to prevent error from git:
 			# ambiguous argument 'arh-hw': both revision and filename
 			# to support branches named as hosts
