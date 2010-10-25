@@ -1,6 +1,6 @@
 + commit --author support
 + diff/revert from another host:/paths/
 + bak diff without params doesn't return full host diff
++ bak cat host:/path/to/file
 - bak ls
 - daily cron job to create branch with uncommited changes
-- bak cat host:/path/to/file

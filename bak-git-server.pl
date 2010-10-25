@@ -26,6 +26,8 @@ bak command overview:
   bak ch[anges]
   bak revert [host:]/path
 
+  bak cat [host:]/path
+
   bak - push all changed files to server
 
 See L<http://blog.rot13.org/bak-git> for more information
@@ -181,6 +183,13 @@ while (my $client = $server->accept()) {
 			print $client git "checkout -- $hostname/$path";
 			system 'rsync', '-avv', "$hostname/$path", "root\@$hostname:$path";
 		}
+	} elsif ( $command eq 'cat' ) {
+		my $file_path = ( $on_host ? $on_host : $hostname ) . "/$path";
+		open(my $file, '<', $file_path) || warn "ERROR $file_path: $!";
+		while(<$file>) {
+			print $client $_;
+		}
+		close($file);
 	} else {
 		print $client "Unknown command: $command\n";
 	}

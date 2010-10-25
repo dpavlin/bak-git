@@ -1,0 +1,6 @@
+Simple tracking of remote files in central git repository
+with only shell, netcat, rsync and ssh on client
+
+http://blog.rot13.org/bak-git/
+
+
