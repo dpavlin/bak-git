@@ -104,7 +104,7 @@ sub pull_changes {
 		print $files "$_\n" foreach @_;
 		close($files);
 	}
-	rsync( qw( -avv --files-from /tmp/$hostname.list root\@$hostname:/ $hostname/ ) );
+	rsync split / /, "-avv --files-from /tmp/$hostname.list root\@$hostname:/ $hostname/";
 }
 
 while (my $client = $server->accept()) {
