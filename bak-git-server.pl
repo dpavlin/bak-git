@@ -91,6 +91,11 @@ warn "dir: $dir listen: $server_ip:9001\n"
 	, $shell_client
 ;
 
+sub rsync {
+	warn "# rsync ",join(' ', @_), "\n";
+	system 'rsync', @_;
+}
+
 sub pull_changes {
 	my $hostname = shift;
 	system "find $hostname -type f | sed 's,$hostname,,' > /tmp/$hostname.list";
@@ -99,7 +104,7 @@ sub pull_changes {
 		print $files "$_\n" foreach @_;
 		close($files);
 	}
-	system "rsync -avv --files-from /tmp/$hostname.list root\@$hostname:/ $hostname/"
+	rsync( qw( -avv --files-from /tmp/$hostname.list root\@$hostname:/ $hostname/ ) );
 }
 
 while (my $client = $server->accept()) {
@@ -145,7 +150,7 @@ while (my $client = $server->accept()) {
 	} elsif ( $command eq 'add' ) {
 		mkpath "$hostname/$dir" unless -e "$hostname/$dir";
 		while ( $path ) {
-			system 'rsync', '-avv', "root\@$hostname:$path", "$hostname/$path";
+			rsync( '-avv', "root\@$hostname:$path", "$hostname/$path" );
 			print $client git 'add', "$hostname/$path";
 
 			$args_message =~ s/^(.+)\b// || last;
@@ -162,8 +167,8 @@ while (my $client = $server->accept()) {
 		$command = 'log --patch-with-stat' if $command =~ m/^ch/;
 		pull_changes( $hostname ) if $command eq 'diff';
 		if ( $on_host ) {
-			system 'rsync', '-avv', "root\@$hostname:$path", "$hostname/$path";
-			system 'rsync', '-avv', "root\@$on_host:$path", "$on_host/$path";
+			rsync( '-avv', "root\@$hostname:$path", "$hostname/$path" );
+			rsync( '-avv', "root\@$on_host:$path", "$on_host/$path" );
 			open(my $diff, '-|', "diff -Nuw $hostname$path $on_host$path");
 			while(<$diff>) {
 				print $client $_;
@@ -178,10 +183,10 @@ while (my $client = $server->accept()) {
 		}
 	} elsif ( $command eq 'revert' ) {
 		if ( $on_host ) {
-			system 'rsync', '-avv', "$on_host/$path", "root\@$hostname:$path";
+			rsync( '-avv', "$on_host/$path", "root\@$hostname:$path" );
 		} else {
 			print $client git "checkout -- $hostname/$path";
-			system 'rsync', '-avv', "$hostname/$path", "root\@$hostname:$path";
+			rsync( '-avv', "$hostname/$path", "root\@$hostname:$path" );
 		}
 	} elsif ( $command eq 'cat' ) {
 		my $file_path = ( $on_host ? $on_host : $hostname ) . "/$path";
