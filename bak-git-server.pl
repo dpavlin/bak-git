@@ -167,6 +167,7 @@ while (my $client = $server->accept()) {
 		$command = 'log --patch-with-stat' if $command =~ m/^ch/;
 		pull_changes( $hostname ) if $command eq 'diff';
 		if ( $on_host ) {
+			mkpath "$hostname/$dir" unless -e "$hostname/$dir";
 			rsync( '-avv', "root\@$hostname:$path", "$hostname/$path" );
 			rsync( '-avv', "root\@$on_host:$path", "$on_host/$path" );
 			open(my $diff, '-|', "diff -Nuw $hostname$path $on_host$path");
