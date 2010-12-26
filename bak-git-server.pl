@@ -196,6 +196,8 @@ while (my $client = $server->accept()) {
 			print $client $_;
 		}
 		close($file);
+	} elsif ( $command eq 'ls' ) {
+		print $client `ls $backup_path`;
 	} else {
 		print $client "Unknown command: $command\n";
 	}
