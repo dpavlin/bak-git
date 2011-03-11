@@ -55,6 +55,7 @@ $server_ip ||= '127.0.0.1';
 
 my $shell_client = <<__SHELL_CLIENT__;
 #!/bin/sh
+#echo \$USER/\$SUDO_USER $install `pwd` \$* | nc 127.0.0.1 9001
 echo \$USER/\$SUDO_USER `hostname` `pwd` \$* | nc $server_ip 9001
 __SHELL_CLIENT__
 
