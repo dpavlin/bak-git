@@ -11,9 +11,14 @@ Start server, install on remote-host or upgrade with:
 	[--install remote-host]
 	[--upgrade]
 
-You will want to add following to C<~/.ssh/config>
+C<rsync> traffic is always transfered over ssh, but C<diff> or C<ch> can
+still leak sensitive information if C<bak> shell client connects directly
+to server host.
 
-  RemoteForward 9001 localhost:9001
+Add following line to C<~/.ssh/config> under C<Host> for which you want encrypted
+controll channel (or to pass through server ssh hops using C<ProxyCommand>)
+
+  RemoteForward 9001 192.168.42.42:9001
 
 bak command overview:
 
@@ -53,20 +58,42 @@ my ( $dir, $server_ip ) = @ARGV;
 die "usage: $0 /backup/directory 127.0.0.1\n" unless $dir;
 $server_ip ||= '127.0.0.1';
 
-my $shell_client = <<__SHELL_CLIENT__;
-#!/bin/sh
-#echo \$USER/\$SUDO_USER $install `pwd` \$* | nc 127.0.0.1 9001
-echo \$USER/\$SUDO_USER `hostname` `pwd` \$* | nc $server_ip 9001
-__SHELL_CLIENT__
+# parse ssh config
+my $ssh_tunnel;
+open(my $ssh_fd, '<', "$ENV{HOME}/.ssh/config");
+my $host;
+while(<$ssh_fd>) {
+	chomp;
+	next unless length($_) > 0;
+	next if m/^\s*#/;
+
+	if ( /^Host\s+(.+)/i ) {
+		$host = $1;
+	} elsif ( /^\s+(\S+)\s+(.+)/ ) {
+		$ssh_tunnel->{$host}++ if lc($1) eq 'remoteforward' && $2 =~ m/9001/;
+	} else {
+		die "can't parse $_";
+	}
+}
+
+sub shell_client {
+	my ( $hostname ) = @_;
+	my $path = '/tmp/bak';
+	my $server = $server_ip;
+	$server = '127.0.0.1' if $ssh_tunnel->{$hostname};
+warn "# ssh_client $hostname $server";
+	open(my $fh, '>', $path);
+	print $fh "#!/bin/sh\n";
+	print $fh "echo \$USER/\$SUDO_USER $hostname `pwd` \$* | nc $server 9001\n";
+	close($fh);
+	chmod 0755, $path;
+	return $path;
+}
 
 chdir $dir;
 system 'git init' unless -e '.git';
 
 if ( $upgrade || $install ) {
-	open(my $fh, '>', '/tmp/bak');
-	print $fh $shell_client;
-	close($fh);
-	chmod 0755, '/tmp/bak';
 
 	my @hosts = grep { -d $_ } glob '*';
 	@hosts = ( $install ) if $install;
@@ -74,8 +101,15 @@ if ( $upgrade || $install ) {
 	foreach my $hostname ( @hosts ) {
 		warn "install on $hostname\n";
 		system 'ssh-copy-id', "root\@$hostname" if ! -d $hostname;
-		system "scp /tmp/bak root\@$hostname:/usr/local/bin/";
+		my $path = shell_client( $hostname );
+		system "scp $path root\@$hostname:/usr/local/bin/";
 		system "ssh root\@$hostname apt-get install -y rsync";
+	}
+} else {
+	warn "# start ssh tunnels...";
+	foreach my $host ( keys %$ssh_tunnel ) {
+		warn "## $host\n";
+		open( $ssh_tunnel->{$host}, '-|', "ssh -N root\@$host &" ) or die $!;
 	}
 }
 
@@ -88,9 +122,7 @@ my $server = IO::Socket::INET->new(
 ) || die $!;
 
 
-warn "dir: $dir listen: $server_ip:9001\n"
-	, $shell_client
-;
+warn "dir: $dir listen: $server_ip:9001\n";
 
 sub rsync {
 	warn "# rsync ",join(' ', @_), "\n";
