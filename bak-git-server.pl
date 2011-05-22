@@ -28,6 +28,7 @@ bak command overview:
   bak status [/path]
   bak log [/path]
 
+  bak show
   bak ch[anges]
   bak revert [host:]/path
 
@@ -231,6 +232,8 @@ while (my $client = $server->accept()) {
 		close($file);
 	} elsif ( $command eq 'ls' ) {
 		print $client `ls $backup_path`;
+	} elsif ( $command eq 'show' ) {
+		print $client `git show`;
 	} else {
 		print $client "Unknown command: $command\n";
 	}
