@@ -107,10 +107,11 @@ if ( $upgrade || $install ) {
 		system "ssh root\@$hostname apt-get install -y rsync";
 	}
 } else {
-	warn "# start ssh tunnels...";
+	my $ssh = $ENV{SSH} || 'ssh';
+	warn "# start $ssh tunnels...";
 	foreach my $host ( keys %$ssh_tunnel ) {
 		warn "## $host\n";
-		open( $ssh_tunnel->{$host}, '-|', "ssh -N root\@$host &" ) or die $!;
+		open( $ssh_tunnel->{$host}, '-|', "$ssh -N root\@$host &" ) or die $!;
 	}
 }
 
