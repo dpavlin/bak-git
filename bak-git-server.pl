@@ -234,7 +234,7 @@ while (my $client = $server->accept()) {
 	} elsif ( $command eq 'ls' ) {
 		print $client `ls $backup_path`;
 	} elsif ( $command eq 'show' ) {
-		print $client `git show`;
+		print $client `git show $rel_path`;
 	} else {
 		print $client "Unknown command: $command\n";
 	}
