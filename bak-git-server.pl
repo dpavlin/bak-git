@@ -33,6 +33,7 @@ bak command overview:
   bak revert [host:]/path
 
   bak cat [host:]/path
+  bak grep pattern
 
   bak - push all changed files to server
 
@@ -235,6 +236,8 @@ while (my $client = $server->accept()) {
 		print $client `ls $backup_path`;
 	} elsif ( $command eq 'show' ) {
 		print $client `git show $rel_path`;
+	} elsif ( $command eq 'grep' ) {
+		print $client `git log -g --grep=$rel_path`;
 	} else {
 		print $client "Unknown command: $command\n";
 	}
