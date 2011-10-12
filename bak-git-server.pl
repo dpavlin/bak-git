@@ -92,6 +92,16 @@ warn "# ssh_client $hostname $server";
 	return $path;
 }
 
+sub _kill_ssh {
+	while ( my($host,$pid) = each %$ssh_tunnel ) {
+		warn "$host kill TERM $pid";
+		kill 15, $pid; # TERM
+	}
+}
+
+#$SIG{INT};
+$SIG{TERM} = &_kill_ssh;
+
 chdir $dir;
 system 'git init' unless -e '.git';
 
@@ -112,20 +122,31 @@ if ( $upgrade || $install ) {
 	warn "# start $ssh tunnels...";
 	foreach my $host ( keys %$ssh_tunnel ) {
 		warn "## $host\n";
-		open( $ssh_tunnel->{$host}, '-|', "$ssh -N root\@$host &" ) or die $!;
+		my $pid = fork;
+		if ( ! defined $pid ) {
+			die "fork: $!";
+		} elsif ( $pid ) {
+#			waitpid $pid, 0;
+			warn "FIXME: waitpid $pid";
+		} else {
+			warn "EXEC $ssh $host";
+			exec "$ssh -N root\@$host";
+		}
+
+		$ssh_tunnel->{$host} = $pid;
 	}
 }
 
+warn "dir: $dir listen: $server_ip:9001\n";
+
 my $server = IO::Socket::INET->new(
 	Proto     => 'tcp',
-	LocalAddr => $server_ip,
+#	LocalAddr => $server_ip,
 	LocalPort => 9001,
 	Listen    => SOMAXCONN,
 	Reuse     => 1
 ) || die $!;
 
-
-warn "dir: $dir listen: $server_ip:9001\n";
 
 sub rsync {
 	warn "# rsync ",join(' ', @_), "\n";
