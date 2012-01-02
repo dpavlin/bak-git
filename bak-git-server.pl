@@ -115,7 +115,7 @@ if ( $upgrade || $install ) {
 		system 'ssh-copy-id', "root\@$hostname" if ! -d $hostname;
 		my $path = shell_client( $hostname );
 		system "scp $path root\@$hostname:/usr/local/bin/";
-		system "ssh root\@$hostname apt-get install -y rsync";
+		system "ssh root\@$hostname apt-get install -y netcat rsync";
 	}
 } else {
 	my $ssh = $ENV{SSH} || 'ssh';
