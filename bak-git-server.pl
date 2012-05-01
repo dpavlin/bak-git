@@ -121,6 +121,7 @@ if ( $upgrade || $install ) {
 	my $ssh = $ENV{SSH} || 'ssh';
 	warn "# start $ssh tunnels...";
 	foreach my $host ( keys %$ssh_tunnel ) {
+last; # FIXME disabled
 		warn "## $host\n";
 		my $pid = fork;
 		if ( ! defined $pid ) {
@@ -248,11 +249,15 @@ while (my $client = $server->accept()) {
 		}
 	} elsif ( $command eq 'cat' ) {
 		my $file_path = ( $on_host ? $on_host : $hostname ) . "/$path";
-		open(my $file, '<', $file_path) || warn "ERROR $file_path: $!";
-		while(<$file>) {
-			print $client $_;
+		if ( -r $file_path ) {
+			open(my $file, '<', $file_path) || warn "ERROR $file_path: $!";
+			while(<$file>) {
+				print $client $_;
+			}
+			close($file);
+		} else {
+			print $client "ERROR: $file_path: $!\n";
 		}
-		close($file);
 	} elsif ( $command eq 'ls' ) {
 		print $client `ls $backup_path`;
 	} elsif ( $command eq 'show' ) {
@@ -263,5 +268,6 @@ while (my $client = $server->accept()) {
 		print $client "Unknown command: $command\n";
 	}
 
+	close($client);
 }
 
