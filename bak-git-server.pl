@@ -165,6 +165,13 @@ sub pull_changes {
 	rsync split / /, "-avv --files-from /tmp/$hostname.list root\@$hostname:/ $hostname/";
 }
 
+sub mkbasedir {
+	my $path = shift;
+	$path =~ s{/[^/]+$}{};
+	warn "# mkpath $path\n";
+	mkpath $path || die $!;
+}
+
 while (my $client = $server->accept()) {
 	my $line = <$client>;
 	chomp($line);
@@ -264,8 +271,18 @@ while (my $client = $server->accept()) {
 		print $client `git show $rel_path`;
 	} elsif ( $command eq 'grep' ) {
 		print $client `git log -g --grep=$rel_path`;
+	} elsif ( $command eq 'link' ) {
+		if ( $on_host ) {
+			mkbasedir "$on_host/$path";
+			rsync( '-avv', "root\@$on_host:$path", "$on_host/$path" );
+			mkbasedir "$hostname/$path";
+			link "$on_host/$path", "$hostname/$path";
+			rsync( '-avv', "$hostname/$path", "root\@$hostname:$path" );
+		} else {
+			print $client "ERROR: link requires host:/path\n";
+		}
 	} else {
-		print $client "Unknown command: $command\n";
+		print $client "ERROR: unknown command: $command\n";
 	}
 
 	close($client);
