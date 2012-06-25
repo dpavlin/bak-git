@@ -20,7 +20,7 @@ controll channel (or to pass through server ssh hops using C<ProxyCommand>)
 
   RemoteForward 9001 192.168.42.42:9001
 
-bak command overview:
+bak command, overview:
 
   bak add /path
   bak commit [/path [message]]
@@ -36,6 +36,8 @@ bak command overview:
   bak grep pattern
 
   bak - push all changed files to server
+
+  bak add,commit /path
 
 See L<http://blog.rot13.org/bak-git> for more information
 
@@ -190,6 +192,8 @@ while (my $client = $server->accept()) {
 	}
 	my $path = $rel_path =~ m{^/} ? $rel_path : "$pwd/$rel_path";
 
+	foreach my $command ( split /,/, $command ) { # XXX command loop
+
 	warn "$hostname [$command] $on_host:$path | $message\n";
 
 	my $args_message = $message;
@@ -284,6 +288,8 @@ while (my $client = $server->accept()) {
 	} else {
 		print $client "ERROR: unknown command: $command\n";
 	}
+
+	} # XXX command, loop
 
 	close($client);
 }
