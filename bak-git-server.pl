@@ -97,7 +97,7 @@ warn "# ssh_client $hostname $server";
 sub _kill_ssh {
 	while ( my($host,$pid) = each %$ssh_tunnel ) {
 		warn "$host kill TERM $pid";
-		kill 15, $pid; # TERM
+		eval { kill 15, $pid; } # TERM
 	}
 }
 
@@ -270,7 +270,8 @@ while (my $client = $server->accept()) {
 			print $client "ERROR: $file_path: $!\n";
 		}
 	} elsif ( $command eq 'ls' ) {
-		print $client `ls $backup_path`;
+		my $file_path = ( $on_host ? $on_host : $hostname ) . "/$path";
+		print $client `ls $file_path 2>&1`;
 	} elsif ( $command eq 'show' ) {
 		print $client `git show $rel_path`;
 	} elsif ( $command eq 'grep' ) {
