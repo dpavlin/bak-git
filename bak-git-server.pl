@@ -34,6 +34,7 @@ bak command, overview:
 
   bak cat [host:]/path
   bak grep pattern
+  bak find filename-pattern
 
   bak - push all changed files to server
 
@@ -276,6 +277,8 @@ while (my $client = $server->accept()) {
 		print $client `git show $rel_path`;
 	} elsif ( $command eq 'grep' ) {
 		print $client `git log -g --grep=$rel_path`;
+	} elsif ( $command eq 'find' ) {
+		print $client `find . -iname '*$rel_path*' | sed -e 's,^./,,' -e 's,/,:/,'`
 	} elsif ( $command eq 'link' ) {
 		if ( $on_host ) {
 			mkbasedir "$on_host/$path";
