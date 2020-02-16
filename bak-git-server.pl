@@ -79,7 +79,7 @@ while(<$ssh_fd>) {
 	} elsif ( /^\s+$/ ) {
 		# nop
 	} else {
-		die "can't parse [$_]";
+		warn "can't parse [$_]";
 	}
 }
 
