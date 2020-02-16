@@ -76,8 +76,10 @@ while(<$ssh_fd>) {
 		$host = $1;
 	} elsif ( /^\s+(\S+)\s+(.+)/ ) {
 		$ssh_tunnel->{$host}++ if lc($1) eq 'remoteforward' && $2 =~ m/9001/;
+	} elsif ( /^\s+$/ ) {
+		# nop
 	} else {
-		die "can't parse $_";
+		die "can't parse [$_]";
 	}
 }
 

@@ -1,6 +1,8 @@
 #!/bin/sh -x
 
-if [ -z "$1" ] ; then
+cd /home/dpavlin/klin/bak-git
+
+if [ ! -z "$1" ] ; then
 
 /usr/sbin/lighttpd -f gitweb/httpd.conf
 
