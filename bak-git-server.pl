@@ -180,7 +180,14 @@ sub mkbasedir {
 while (my $client = $server->accept()) {
 	my $line = <$client>;
 	chomp($line);
-	warn "<<< $line\n";
+
+	my $peerhost = $client->peerhost;
+	if ( $peerhost !~ m/^(10\.13\.37\.|10\.60\.0\.)/ ) {
+		print $client "$peerhost not allowed\n";
+		next;
+	}
+
+	warn "<<< $peerhost $line\n";
 	my ($user,$hostname,$pwd,$command,$rel_path,$message) = split(/\s+/,$line,6);
 	$hostname =~ s/\..+$//;
 
