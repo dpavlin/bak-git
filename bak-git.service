@@ -1,0 +1,11 @@
+[Unit]
+Description=bak-git
+After=network-online.target
+
+[Service]
+User=dpavlin
+ExecStart=/home/dpavlin/klin/bak-git/klin.sh 
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
