@@ -27,6 +27,8 @@ bak command, overview:
   bak diff [host:][/path]
   bak status [/path]
   bak log [/path]
+  bak log-grep pattern
+  bak grep pattern
 
   bak show
   bak ch[anges]
@@ -182,7 +184,7 @@ while (my $client = $server->accept()) {
 	chomp($line);
 
 	my $peerhost = $client->peerhost;
-	if ( $peerhost !~ m/^(10\.13\.37\.|10\.60\.0\.)/ ) {
+	if ( $peerhost !~ m/^(10\.13\.37\.|10\.60\.0\.|10\.200\.100\.)/ ) {
 		print $client "$peerhost not allowed\n";
 		next;
 	}
@@ -284,8 +286,10 @@ while (my $client = $server->accept()) {
 		print $client `ls $file_path 2>&1`;
 	} elsif ( $command eq 'show' ) {
 		print $client `git show $rel_path`;
+	} elsif ( $command eq 'log-grep' ) {
+		#print $client `git log -g --grep=$rel_path`;
 	} elsif ( $command eq 'grep' ) {
-		print $client `git log -g --grep=$rel_path`;
+		print $client `git grep $rel_path`;
 	} elsif ( $command eq 'find' ) {
 		print $client `find . -iname '*$rel_path*' | sed -e 's,^./,,' -e 's,/,:/,'`
 	} elsif ( $command eq 'link' ) {
