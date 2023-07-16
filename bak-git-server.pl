@@ -93,7 +93,7 @@ sub shell_client {
 warn "# ssh_client $hostname $server";
 	open(my $fh, '>', $path);
 	print $fh "#!/bin/sh\n";
-	print $fh "echo \$USER/\$SUDO_USER $hostname `pwd` \$* | nc $server 9001\n";
+	print $fh "echo \"\$USER/\$SUDO_USER\t$hostname\t`pwd`\t\$*\" | nc $server 9001\n";
 	close($fh);
 	chmod 0755, $path;
 	return $path;
@@ -190,7 +190,22 @@ while (my $client = $server->accept()) {
 	}
 
 	warn "<<< $peerhost $line\n";
-	my ($user,$hostname,$pwd,$command,$rel_path,$message) = split(/\s+/,$line,6);
+	my ($user,$hostname,$pwd,$command,$rel_path,$message);
+
+	my @v = split(/\t/, $line);
+	if ( @v ) {
+		if ( $#v == 3 ) {
+			my $line = pop @v;
+warn "XXX line [$line]";
+			# ,$command,$rel_path,$message)
+			push @v, split(/\s+/,$line,3);
+		}
+		($user,$hostname,$pwd,$command,$rel_path,$message) = @v;
+	} else {
+		($user,$hostname,$pwd,$command,$rel_path,$message) = split(/\s+/,$line,6);
+	}
+
+	warn "### $user,$hostname,$pwd,$command,$rel_path,$message";
 	$hostname =~ s/\..+$//;
 
 	my $on_host = '';
@@ -232,7 +247,7 @@ while (my $client = $server->accept()) {
 		mkpath "$hostname/$dir" unless -e "$hostname/$dir";
 		while ( $path ) {
 			rsync( '-avv', "root\@$hostname:$path", "$hostname/$path" );
-			print $client git 'add', "$hostname/$path";
+			print $client git 'add', "'$hostname/$path'";
 
 			$args_message =~ s/^(.+)\b// || last;
 			$path = $1;
@@ -242,7 +257,7 @@ while (my $client = $server->accept()) {
 		pull_changes $hostname;
 		$message =~ s/'/\\'/g;
 		$user =~ s/\/$//;
-		print $client git( "commit -m '$message' --author '$user <$hostname>' $backup_path" );
+		print $client git( "commit -m '$message' --author '$user <$hostname>' '$backup_path'" );
 	} elsif ( $command =~ m{(diff|status|log|ch)} ) {
 		$command .= ' --stat' if $command eq 'log';
 		$command = 'log --patch-with-stat' if $command =~ m/^ch/;
