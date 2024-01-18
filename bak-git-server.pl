@@ -205,20 +205,26 @@ warn "XXX line [$line]";
 		($user,$hostname,$pwd,$command,$rel_path,$message) = split(/\s+/,$line,6);
 	}
 
-	warn "### $user,$hostname,$pwd,$command,$rel_path,$message";
+	{ no warnings; warn "### user:$user hostname:$hostname pwd:$pwd command:$command rel_path:$rel_path message:$message"; }
 	$hostname =~ s/\..+$//;
 
-	my $on_host = '';
-	if ( $rel_path =~ s/^([^:]+):(.+)$/$2/ ) {
-		if ( -e $1 ) {
-			$on_host = $1;
-		} else {
-			print $client "host $1 doesn't exist in backup\n";
-			next;
-		}
-	}
-	my $path = $rel_path =~ m{^/} ? $rel_path : "$pwd/$rel_path";
+	my $path = "$pwd/";
 
+	my $on_host = '';
+	if ( $rel_path ) {
+		if ( $rel_path =~ s/^([^:]+):(.+)$/$2/ ) {
+			if ( -e $1 ) {
+				$on_host = $1;
+			} else {
+				print $client "host $1 doesn't exist in backup\n";
+				next;
+			}
+		}
+		$path = $rel_path =~ m{^/} ? $rel_path : "$pwd/$rel_path";
+	}
+
+
+	$command //= '';
 	foreach my $command ( split /,/, $command ) { # XXX command loop
 
 	warn "$hostname [$command] $on_host:$path | $message\n";
