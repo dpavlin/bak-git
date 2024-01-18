@@ -193,6 +193,11 @@ while (my $client = $server->accept()) {
 	my ($user,$hostname,$pwd,$command,$rel_path,$message);
 
 	my @v = split(/\t/, $line);
+
+	if ( $#v == 0 ) { # backward comptabile space delimited
+		@v = split(/\s/, $v[0] );
+	}
+
 	if ( @v ) {
 		if ( $#v == 3 ) {
 			my $line = pop @v;
