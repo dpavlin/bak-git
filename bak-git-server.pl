@@ -217,7 +217,7 @@ warn "XXX line [$line]";
 
 	my $on_host = '';
 	if ( $rel_path ) {
-		if ( $rel_path =~ s/^([^:]+):(.+)$/$2/ ) {
+		if ( $rel_path =~ s/^([^:]+):(.*)$/$2/ ) {
 			if ( -e $1 ) {
 				$on_host = $1;
 			} else {
@@ -316,6 +316,10 @@ warn "XXX line [$line]";
 	} elsif ( $command eq 'ls' ) {
 		my $file_path = ( $on_host ? $on_host : $hostname ) . "/$path";
 		print $client `ls $file_path 2>&1`;
+	} elsif ( $command eq 'ls-files' ) {
+		my $target = $on_host || $hostname;
+		$path = "/$path" unless $path =~ m{^/};
+		print $client `git ls-files $target$path | sed "s,^$target$path/*,,"`;
 	} elsif ( $command eq 'show' ) {
 		print $client `git show $rel_path`;
 	} elsif ( $command eq 'log-grep' ) {
