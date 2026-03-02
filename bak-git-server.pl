@@ -263,13 +263,14 @@ warn "XXX line [$line]";
 	} elsif ( $command eq 'add' ) {
 		mkpath "$hostname/$dir" unless -e "$hostname/$dir";
 		while ( $path ) {
-			rsync( '-av', "root\@$hostname:$path", "$hostname/$path" );
+			rsync( '-av', "$hostname:$path", "$hostname/$path" );
 			print $client git 'add', "'$hostname/$path'";
 
-			$args_message =~ s/^(.+)\b// || last;
+			$args_message =~ s/^\s*(\S+)\s*// || last;
 			$path = $1;
 			warn "? $path";
 		}
+
 	} elsif ( $command eq 'commit' ) {
 		pull_changes $hostname;
 		$message =~ s/'/\\'/g;

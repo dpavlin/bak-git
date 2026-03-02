@@ -11,6 +11,7 @@
 ### Path Parsing Improvements
 - Added logic to detect `/mnt/host/path` and automatically translate it to `host:/path`. This allows using `bak add` on files within `sshfs` mounts by correctly identifying the target host.
 - Fixed `split` logic to handle multiple spaces in the input line, improving compatibility with various `nc` versions.
+- Improved the `add` command loop regex to correctly extract multiple files from the message.
 - Improved host parsing regex to allow an empty path after the colon (e.g., `bak ls-files host:`).
 
 ### Performance Optimizations
