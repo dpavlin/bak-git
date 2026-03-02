@@ -274,7 +274,12 @@ warn "XXX line [$line]";
 		pull_changes $hostname;
 		$message =~ s/'/\\'/g;
 		$user =~ s/\/$//;
-		print $client git( "commit -m '$message' --author '$user <$hostname>' '$backup_path'" );
+		my $target = $rel_path ? "$hostname/$path" : $backup_path;
+		$target =~ s,//,/,g;
+		my $mtime = (stat($target))[9] || (stat($backup_path))[9];
+		my $commit_path = -e $target ? $target : "$backup_path/";
+		print $client git 'add', "'$commit_path'";
+		print $client git( "commit --date='\@$mtime' -m '$message' --author '$user <$hostname>' '$commit_path'" );
 	} elsif ( $command =~ m{(diff|status|log|ch)} ) {
 		$command .= ' --stat' if $command eq 'log';
 		$command = 'log --patch-with-stat' if $command =~ m/^ch/;
