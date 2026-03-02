@@ -169,7 +169,7 @@ sub pull_changes {
 		print $files "$_\n" foreach @_;
 		close($files);
 	}
-	rsync split / /, "-avv --files-from /tmp/$hostname.list root\@$hostname:/ $hostname/";
+	rsync split / /, "-av --files-from /tmp/$hostname.list root\@$hostname:/ $hostname/";
 }
 
 sub mkbasedir {
@@ -263,7 +263,7 @@ warn "XXX line [$line]";
 	} elsif ( $command eq 'add' ) {
 		mkpath "$hostname/$dir" unless -e "$hostname/$dir";
 		while ( $path ) {
-			rsync( '-avv', "root\@$hostname:$path", "$hostname/$path" );
+			rsync( '-av', "root\@$hostname:$path", "$hostname/$path" );
 			print $client git 'add', "'$hostname/$path'";
 
 			$args_message =~ s/^(.+)\b// || last;
@@ -281,8 +281,8 @@ warn "XXX line [$line]";
 		pull_changes( $hostname ) if $command eq 'diff';
 		if ( $on_host ) {
 			mkpath $_ foreach grep { ! -e $_ } ( "$hostname/$dir", "$on_host/$dir" );
-			rsync( '-avv', "root\@$hostname:$path", "$hostname/$path" );
-			rsync( '-avv', "root\@$on_host:$path", "$on_host/$path" );
+			rsync( '-av', "root\@$hostname:$path", "$hostname/$path" );
+			rsync( '-av', "root\@$on_host:$path", "$on_host/$path" );
 			open(my $diff, '-|', "diff -Nuw $hostname$path $on_host$path");
 			while(<$diff>) {
 				print $client $_;
@@ -297,10 +297,10 @@ warn "XXX line [$line]";
 		}
 	} elsif ( $command eq 'revert' ) {
 		if ( $on_host ) {
-			rsync( '-avv', "$on_host/$path", "root\@$hostname:$path" );
+			rsync( '-av', "$on_host/$path", "root\@$hostname:$path" );
 		} else {
 			print $client git "checkout -- $hostname/$path";
-			rsync( '-avv', "$hostname/$path", "root\@$hostname:$path" );
+			rsync( '-av', "$hostname/$path", "root\@$hostname:$path" );
 		}
 	} elsif ( $command eq 'cat' ) {
 		my $file_path = ( $on_host ? $on_host : $hostname ) . "/$path";
@@ -327,10 +327,10 @@ warn "XXX line [$line]";
 	} elsif ( $command eq 'link' ) {
 		if ( $on_host ) {
 			mkbasedir "$on_host/$path";
-			rsync( '-avv', "root\@$on_host:$path", "$on_host/$path" );
+			rsync( '-av', "root\@$on_host:$path", "$on_host/$path" );
 			mkbasedir "$hostname/$path";
 			link "$on_host/$path", "$hostname/$path";
-			rsync( '-avv', "$hostname/$path", "root\@$hostname:$path" );
+			rsync( '-av', "$hostname/$path", "root\@$hostname:$path" );
 		} else {
 			print $client "ERROR: link requires host:/path\n";
 		}
