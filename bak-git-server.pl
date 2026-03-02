@@ -195,7 +195,7 @@ while (my $client = $server->accept()) {
 	my @v = split(/\t/, $line);
 
 	if ( $#v == 0 ) { # backward comptabile space delimited
-		@v = split(/\s/, $v[0] );
+		@v = split(/\s+/, $v[0] );
 	}
 
 	if ( @v ) {
@@ -226,6 +226,12 @@ warn "XXX line [$line]";
 			}
 		}
 		$path = $rel_path =~ m{^/} ? $rel_path : "$pwd/$rel_path";
+	}
+
+	# handle sshfs mounts in /mnt/host/path
+	if ( $path =~ m{^/mnt/([^/]+)(/.*)?$} && -d $1 ) {
+		$hostname = $1;
+		$path = $2 || '/';
 	}
 
 
