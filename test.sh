@@ -287,4 +287,64 @@ fi
 
 echo "PASS: absolute paths"
 
+# 16. Test host:/path syntax
+echo "Test 16: host:/path syntax"
+OTHER_HOST="other_host"
+mkdir -p "$BACKUP_DIR/$OTHER_HOST"
+cd "$BACKUP_DIR"
+# Add a file directly to the other host in the backup repo
+mkdir -p "$OTHER_HOST$CLIENT_DIR"
+echo "other host content" > "$OTHER_HOST$CLIENT_DIR/other_file.txt"
+git add "$OTHER_HOST$CLIENT_DIR/other_file.txt"
+git commit -m "Add file to other host" > /dev/null
+cd "$CLIENT_DIR"
+
+# Test cat host:/path
+CAT_OTHER=$(bak cat "$OTHER_HOST:$CLIENT_DIR/other_file.txt")
+if [[ "$CAT_OTHER" != "other host content" ]]; then
+    echo "FAIL: cat host:/path incorrect. Got: [$CAT_OTHER]"
+    exit 1
+fi
+
+# Test ls host:/path
+LS_OTHER=$(bak ls "$OTHER_HOST:$CLIENT_DIR/other_file.txt")
+if [[ "$LS_OTHER" != *"/other_file.txt"* ]]; then
+    echo "FAIL: ls host:/path incorrect. Got: [$LS_OTHER]"
+    exit 1
+fi
+
+# Test ls-files host:
+LS_FILES_OTHER=$(bak ls-files "$OTHER_HOST:")
+# tr -d '\r' to handle possible network line endings
+LS_FILES_OTHER=$(echo "$LS_FILES_OTHER" | tr -d '\r')
+if ! echo "$LS_FILES_OTHER" | grep -q "other_file.txt"; then
+    echo "FAIL: ls-files host: incorrect. Got: [$LS_FILES_OTHER]"
+    exit 1
+fi
+
+# Test diff host:/path (compares localhost file with other_host file)
+# We need to use the same path on both hosts for side-by-side diff
+# So we add the file at the same location on localhost
+mkdir -p "$(dirname "$CLIENT_DIR/other_file.txt")"
+echo "local content" > "$CLIENT_DIR/other_file.txt"
+bak add "$CLIENT_DIR/other_file.txt"
+bak commit "$CLIENT_DIR/other_file.txt" "Add local file at same path"
+
+DIFF_HOST=$(bak diff "$OTHER_HOST:$CLIENT_DIR/other_file.txt")
+if ! echo "$DIFF_HOST" | grep -q "+other host content"; then
+    echo "FAIL: diff host:/path incorrect"
+    echo "DEBUG: DIFF_HOST:"
+    echo "$DIFF_HOST"
+    exit 1
+fi
+
+# Test revert host:/path (restores file from other_host to localhost)
+bak revert "$OTHER_HOST:$CLIENT_DIR/other_file.txt"
+if [[ "$(cat "$CLIENT_DIR/other_file.txt")" != "other host content" ]]; then
+    echo "FAIL: revert host:/path failed"
+    exit 1
+fi
+
+echo "PASS: host:/path syntax"
+
 echo "All tests passed successfully!"
