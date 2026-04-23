@@ -179,6 +179,22 @@ sub mkbasedir {
 	mkpath $path || die $!;
 }
 
+my %whitelist;
+sub load_whitelist {
+	%whitelist = ();
+	if ( open(my $fh, '<', "whitelist.txt") ) {
+		while(<$fh>) {
+			chomp;
+			next if m/^\s*#/;
+			next unless m/\S/;
+			$whitelist{$_}++;
+		}
+		close($fh);
+		warn "# loaded ", scalar(keys %whitelist), " hosts into whitelist\n";
+	}
+}
+load_whitelist();
+
 while (my $client = $server->accept()) {
 	my $line = <$client>;
 	chomp($line);
@@ -212,6 +228,12 @@ warn "XXX line [$line]";
 
 	{ no warnings; warn "### user:$user hostname:$hostname pwd:$pwd command:$command rel_path:$rel_path message:$message"; }
 	$hostname =~ s/\..+$//;
+
+	if ( %whitelist && ! $whitelist{$hostname} ) {
+		print $client "hostname $hostname not in whitelist\n";
+		warn "DENIED: hostname $hostname not in whitelist\n";
+		next;
+	}
 
 	my $path = "$pwd/";
 

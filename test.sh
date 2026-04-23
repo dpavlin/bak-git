@@ -14,6 +14,7 @@ mkdir -p "$CLIENT_DIR"
 
 cd "$BACKUP_DIR"
 git init > /dev/null
+echo "localhost" > whitelist.txt
 
 # Patch server to use test port and allow 127.0.0.1
 SERVER_SCRIPT="$TEST_DIR/bak-git-server-test.pl"
@@ -346,5 +347,16 @@ if [[ "$(cat "$CLIENT_DIR/other_file.txt")" != "other host content" ]]; then
 fi
 
 echo "PASS: host:/path syntax"
+
+# 17. Test whitelist enforcement
+echo "Test 17: whitelist enforcement"
+# 'localhost' is in whitelist.txt. Let's try 'denied_host'
+# We use raw nc because bak() wrapper uses $HOST (localhost)
+DENIED_OUT=$(echo "dpavlin/ denied_host $(pwd) ls" | nc -w 5 127.0.0.1 $PORT | tr -d '\r')
+if [[ "$DENIED_OUT" != "hostname denied_host not in whitelist" ]]; then
+    echo "FAIL: whitelist enforcement failed. Got: [$DENIED_OUT]"
+    exit 1
+fi
+echo "PASS: whitelist enforcement"
 
 echo "All tests passed successfully!"
