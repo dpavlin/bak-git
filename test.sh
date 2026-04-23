@@ -14,7 +14,8 @@ mkdir -p "$CLIENT_DIR"
 
 cd "$BACKUP_DIR"
 git init > /dev/null
-echo "localhost" > whitelist.txt
+# Add localhost with its IP for strict check
+echo "localhost 127.0.0.1" > whitelist.txt
 
 # Patch server to use test port and allow 127.0.0.1
 SERVER_SCRIPT="$TEST_DIR/bak-git-server-test.pl"
@@ -352,11 +353,49 @@ echo "PASS: host:/path syntax"
 echo "Test 17: whitelist enforcement"
 # 'localhost' is in whitelist.txt. Let's try 'denied_host'
 # We use raw nc because bak() wrapper uses $HOST (localhost)
+# We also mock mail by creating a fake /usr/bin/mail in the test dir
+mkdir -p "$TEST_DIR/bin"
+cat <<EOF > "$TEST_DIR/bin/mail"
+#!/bin/sh
+echo "MAIL TO: \$*" >> "$TEST_DIR/mail.log"
+cat >> "$TEST_DIR/mail.log"
+EOF
+chmod +x "$TEST_DIR/bin/mail"
+# Update SERVER_SCRIPT to use our fake mail
+sed -i "s|/usr/bin/mail|$TEST_DIR/bin/mail|g" "$SERVER_SCRIPT"
+# Restart server to pick up fake mail
+kill $SERVER_PID
+"$SERVER_SCRIPT" "$BACKUP_DIR" 127.0.0.1 > "$TEST_DIR/server.log" 2>&1 &
+SERVER_PID=$!
+sleep 2
+
 DENIED_OUT=$(echo "dpavlin/ denied_host $(pwd) ls" | nc -w 5 127.0.0.1 $PORT | tr -d '\r')
-if [[ "$DENIED_OUT" != "hostname denied_host not in whitelist" ]]; then
+if [[ "$DENIED_OUT" != "DENIED: hostname not in whitelist" ]]; then
     echo "FAIL: whitelist enforcement failed. Got: [$DENIED_OUT]"
     exit 1
 fi
-echo "PASS: whitelist enforcement"
+if ! grep -q "To enroll this machine" "$TEST_DIR/mail.log"; then
+    echo "FAIL: alert email not sent or missing instructions"
+    exit 1
+fi
+echo "PASS: whitelist enforcement and alerts"
+
+# 18. Test IP verification
+echo "Test 18: IP verification"
+# localhost is whitelisted for 127.0.0.1.
+# Let's change whitelist to a different IP and try to connect
+echo "localhost 1.1.1.1" > "$BACKUP_DIR/whitelist.txt"
+# Wait for server to reload or restart it
+kill $SERVER_PID
+"$SERVER_SCRIPT" "$BACKUP_DIR" 127.0.0.1 > "$TEST_DIR/server.log" 2>&1 &
+SERVER_PID=$!
+sleep 2
+
+IP_DENIED_OUT=$(bak ls | tr -d '\r')
+if [[ "$IP_DENIED_OUT" != "DENIED: IP 127.0.0.1 not allowed for localhost" ]]; then
+    echo "FAIL: IP verification failed. Got: [$IP_DENIED_OUT]"
+    exit 1
+fi
+echo "PASS: IP verification"
 
 echo "All tests passed successfully!"

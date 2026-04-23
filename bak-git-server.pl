@@ -187,13 +187,42 @@ sub load_whitelist {
 			chomp;
 			next if m/^\s*#/;
 			next unless m/\S/;
-			$whitelist{$_}++;
+			my ($h, $ips) = split(/\s+/, $_, 2);
+			$whitelist{$h} = $ips || 1;
 		}
 		close($fh);
 		warn "# loaded ", scalar(keys %whitelist), " hosts into whitelist\n";
 	}
 }
 load_whitelist();
+
+sub send_alert {
+	my ($peerhost, $hostname, $user, $reason) = @_;
+	my $to = 'dpavlin@rot13.org';
+	my $subject = "BAK-GIT ALERT: $reason from $hostname ($peerhost)";
+	my $body = <<EOF;
+Unauthorized connection attempt to bak-git server on klin.
+
+IP: $peerhost
+Hostname: $hostname
+User: $user
+Reason: $reason
+
+To enroll this machine, add the following line to whitelist.txt on klin:
+$hostname $peerhost
+
+Then restart the service:
+sudo systemctl restart bak-git
+EOF
+
+	if ( open(my $mail, "|-", "/usr/bin/mail -s '$subject' $to") ) {
+		print $mail $body;
+		close($mail);
+		warn "# alert sent to $to for $hostname\n";
+	} else {
+		warn "ERROR: could not send alert email: $!\n";
+	}
+}
 
 while (my $client = $server->accept()) {
 	my $line = <$client>;
@@ -229,9 +258,21 @@ warn "XXX line [$line]";
 	{ no warnings; warn "### user:$user hostname:$hostname pwd:$pwd command:$command rel_path:$rel_path message:$message"; }
 	$hostname =~ s/\..+$//;
 
-	if ( %whitelist && ! $whitelist{$hostname} ) {
-		print $client "hostname $hostname not in whitelist\n";
-		warn "DENIED: hostname $hostname not in whitelist\n";
+	my $denied = '';
+	if ( ! $whitelist{$hostname} ) {
+		$denied = "hostname not in whitelist";
+	} elsif ( $whitelist{$hostname} ne '1' ) {
+		# check IPs
+		my @allowed = split(/,/, $whitelist{$hostname});
+		if ( ! grep { $_ eq $peerhost } @allowed ) {
+			$denied = "IP $peerhost not allowed for $hostname";
+		}
+	}
+
+	if ( $denied ) {
+		print $client "DENIED: $denied\n";
+		warn "DENIED: $hostname ($peerhost) - $denied\n";
+		send_alert($peerhost, $hostname, $user, $denied);
 		next;
 	}
 
