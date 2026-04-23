@@ -195,7 +195,7 @@ while (my $client = $server->accept()) {
 	my @v = split(/\t/, $line);
 
 	if ( $#v == 0 ) { # backward comptabile space delimited
-		@v = split(/\s+/, $v[0] );
+		@v = split(/\s+/, $v[0], 6 );
 	}
 
 	if ( @v ) {
@@ -320,6 +320,7 @@ warn "XXX line [$line]";
 		}
 	} elsif ( $command eq 'cat' ) {
 		my $file_path = ( $on_host ? $on_host : $hostname ) . "/$path";
+		$file_path =~ s,//,/,g;
 		if ( -r $file_path ) {
 			open(my $file, '<', $file_path) || warn "ERROR $file_path: $!";
 			while(<$file>) {
@@ -331,6 +332,7 @@ warn "XXX line [$line]";
 		}
 	} elsif ( $command eq 'ls' ) {
 		my $file_path = ( $on_host ? $on_host : $hostname ) . "/$path";
+		$file_path =~ s,//,/,g;
 		print $client `ls $file_path 2>&1`;
 	} elsif ( $command eq 'ls-files' ) {
 		my $target = $on_host || $hostname;

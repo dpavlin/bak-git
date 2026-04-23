@@ -238,4 +238,53 @@ fi
 cd ..
 echo "PASS: diff --stat /"
 
+# 15. Test Absolute Paths
+echo "Test 15: absolute paths"
+ABS_FILE="$CLIENT_DIR/abs_file.txt"
+echo "absolute content" > "$ABS_FILE"
+
+# add with absolute path
+bak add "$ABS_FILE"
+cd "$BACKUP_DIR"
+ABS_BACKUP_PATH=$(echo "$HOST$ABS_FILE" | sed 's,//,/,g')
+if ! git ls-files | grep -q "$ABS_BACKUP_PATH"; then
+    echo "FAIL: absolute file not added"
+    exit 1
+fi
+cd "$CLIENT_DIR"
+
+# commit with absolute path
+bak commit "$ABS_FILE" "Commit absolute"
+cd "$BACKUP_DIR"
+ABS_BACKUP_PATH=$(echo "$HOST$ABS_FILE" | sed 's,//,/,g')
+if ! git log -1 --format="%s" "$ABS_BACKUP_PATH" | grep -q "Commit absolute"; then
+    echo "FAIL: absolute file not committed"
+    exit 1
+fi
+cd "$CLIENT_DIR"
+
+# cat with absolute path
+CAT_ABS=$(bak cat "$ABS_FILE")
+if [[ "$CAT_ABS" != "absolute content" ]]; then
+    echo "FAIL: cat absolute incorrect. Got: [$CAT_ABS]"
+    exit 1
+fi
+
+# ls with absolute path
+LS_ABS=$(bak ls "$ABS_FILE")
+if [[ "$LS_ABS" != *"$ABS_FILE"* ]]; then
+    echo "FAIL: ls absolute incorrect. Got: [$LS_ABS]"
+    exit 1
+fi
+
+# diff with absolute path
+echo "change" >> "$ABS_FILE"
+DIFF_ABS=$(bak diff "$ABS_FILE")
+if ! echo "$DIFF_ABS" | grep -q "change"; then
+    echo "FAIL: diff absolute incorrect"
+    exit 1
+fi
+
+echo "PASS: absolute paths"
+
 echo "All tests passed successfully!"
