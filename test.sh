@@ -201,4 +201,27 @@ if grep -q "rsync.*--stat" "$TEST_DIR/server.log"; then
 fi
 echo "PASS: diff --stat"
 
+# 13. Test diff without arguments (current directory)
+echo "Test 13: diff without arguments"
+# We have changes in test_dir/file1.txt from Test 12.
+# Let's add a change in a different directory.
+echo "top level change" >> top_level.txt
+bak add top_level.txt
+echo "another top level change" >> top_level.txt
+
+cd test_dir
+bak diff > "$TEST_DIR/diff_no_args.out"
+if grep -q "top_level.txt" "$TEST_DIR/diff_no_args.out"; then
+    echo "FAIL: diff without args showed changes outside current directory"
+    cat "$TEST_DIR/diff_no_args.out"
+    exit 1
+fi
+if ! grep -q "another line" "$TEST_DIR/diff_no_args.out"; then
+    echo "FAIL: diff without args missed changes in current directory"
+    cat "$TEST_DIR/diff_no_args.out"
+    exit 1
+fi
+cd ..
+echo "PASS: diff without arguments"
+
 echo "All tests passed successfully!"

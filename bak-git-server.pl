@@ -300,7 +300,8 @@ warn "XXX line [$line]";
 			}
 		} else {
 			# commands without path will show host-wide status/changes
-			my $backup_path = ( $path && $path ne "$pwd/" ) ? "$hostname/$path" : "$hostname/";
+			my $backup_path = "$hostname/$path";
+			$backup_path =~ s,//,/,g;
 			# hostname must end with / to prevent error from git:
 			# ambiguous argument 'arh-hw': both revision and filename
 			# to support branches named as hosts
