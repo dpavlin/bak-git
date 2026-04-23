@@ -220,7 +220,11 @@ warn "XXX line [$line]";
 	if ( $rel_path ) {
 		if ( $rel_path =~ m/^-/ ) {
 			$git_args = " $rel_path";
-			$rel_path = '';
+			if ( $message =~ s/^\s*([^-]\S*)\s*// ) {
+				$rel_path = $1;
+			} else {
+				$rel_path = '';
+			}
 		} elsif ( $rel_path =~ s/^([^:]+):(.*)$/$2/ ) {
 			if ( -e $1 ) {
 				$on_host = $1;

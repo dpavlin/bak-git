@@ -224,4 +224,18 @@ fi
 cd ..
 echo "PASS: diff without arguments"
 
+# 14. Test diff --stat /
+echo "Test 14: diff --stat /"
+# Run from subdir but target root
+cd test_dir
+bak diff --stat / > "$TEST_DIR/diff_stat_root.out"
+if ! grep -q "top_level.txt" "$TEST_DIR/diff_stat_root.out"; then
+    echo "FAIL: diff --stat / missed top-level changes"
+    cat "$TEST_DIR/server.log"
+    cat "$TEST_DIR/diff_stat_root.out"
+    exit 1
+fi
+cd ..
+echo "PASS: diff --stat /"
+
 echo "All tests passed successfully!"
