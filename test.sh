@@ -183,4 +183,22 @@ if [[ "$(cat test_dir/file1.txt)" != "hello world" ]]; then
 fi
 echo "PASS: revert"
 
+# 12. Test diff --stat
+echo "Test 12: diff --stat"
+echo "another line" >> test_dir/file1.txt
+bak diff --stat > "$TEST_DIR/diff_stat.out"
+sleep 1
+if ! grep -q "1 file changed" "$TEST_DIR/diff_stat.out"; then
+    echo "FAIL: diff --stat output incorrect"
+    cat "$TEST_DIR/diff_stat.out"
+    exit 1
+fi
+# Check server log for rsync errors involving --stat
+if grep -q "rsync.*--stat" "$TEST_DIR/server.log"; then
+    echo "FAIL: server tried to rsync --stat"
+    grep "rsync.*--stat" "$TEST_DIR/server.log"
+    exit 1
+fi
+echo "PASS: diff --stat"
+
 echo "All tests passed successfully!"

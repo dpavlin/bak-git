@@ -216,8 +216,12 @@ warn "XXX line [$line]";
 	my $path = "$pwd/";
 
 	my $on_host = '';
+	my $git_args = '';
 	if ( $rel_path ) {
-		if ( $rel_path =~ s/^([^:]+):(.*)$/$2/ ) {
+		if ( $rel_path =~ m/^-/ ) {
+			$git_args = " $rel_path";
+			$rel_path = '';
+		} elsif ( $rel_path =~ s/^([^:]+):(.*)$/$2/ ) {
 			if ( -e $1 ) {
 				$on_host = $1;
 			} else {
@@ -284,7 +288,8 @@ warn "XXX line [$line]";
 	} elsif ( $command =~ m{(diff|status|log|ch)} ) {
 		$command .= ' --stat' if $command eq 'log';
 		$command = 'log --patch-with-stat' if $command =~ m/^ch/;
-		pull_changes( $hostname ) if $command eq 'diff';
+		$command .= $git_args;
+		pull_changes( $hostname ) if $command =~ /^diff/;
 		if ( $on_host ) {
 			mkpath $_ foreach grep { ! -e $_ } ( "$hostname/$dir", "$on_host/$dir" );
 			rsync( '-av', "root\@$hostname:$path", "$hostname/$path" );
@@ -295,7 +300,7 @@ warn "XXX line [$line]";
 			}
 		} else {
 			# commands without path will show host-wide status/changes
-			my $backup_path = $path ? "$hostname/$path" : "$hostname/";
+			my $backup_path = ( $path && $path ne "$pwd/" ) ? "$hostname/$path" : "$hostname/";
 			# hostname must end with / to prevent error from git:
 			# ambiguous argument 'arh-hw': both revision and filename
 			# to support branches named as hosts
