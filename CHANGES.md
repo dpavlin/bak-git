@@ -13,6 +13,7 @@
 - Fixed `split` logic to handle multiple spaces in the input line, improving compatibility with various `nc` versions.
 - Improved the `add` command loop regex to correctly extract multiple files from the message.
 - Improved host parsing regex to allow an empty path after the colon (e.g., `bak ls-files host:`).
+- Fixed handling of Git flags (e.g., `--stat`) in `diff`, `status`, and `log` commands. These are now correctly identified and passed to Git without triggering unnecessary `rsync` operations.
 
 ### Performance Optimizations
 - Reduced `rsync` verbosity from `-avv` to `-av`. This significantly reduces the amount of data transferred and output processed, speeding up `add`, `commit`, and `diff` operations.
