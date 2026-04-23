@@ -1,0 +1,19 @@
+black 10.60.0.15
+blue 10.13.37.199
+bookreader 10.60.0.59
+brr 10.60.0.81
+cubieboard 10.13.37.25
+cubieboard2 10.13.37.26
+dot1x 193.198.213.199
+eprints 193.198.212.225
+eprints-dev 10.60.0.245
+fpga
+gimpoz 10.60.0.248
+koha-fer-2
+lib
+mjesec 10.60.0.9
+nuc 10.200.100.40
+r1u38 193.198.212.19
+rt
+saturn4
+webpac2 10.60.0.95

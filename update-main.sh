@@ -46,13 +46,15 @@ if [ -f final_host_ips.txt ]; then
 fi
 
 # Sanitize files
-FILES=$(git ls-files)
+FILES=$(git ls-files | grep -v 'update-main.sh' | grep -v 'whitelist.txt' | grep -v 'final_host_ips.txt')
 
 for f in $FILES; do
     # IP Addresses
     sed -i 's/10\.60\.0\.92/192.168.1.1/g' "$f"
     sed -i 's/10\.200\.100\.92/192.168.2.1/g' "$f"
+    sed -i 's/10\.200\.100\.40/192.168.2.40/g' "$f"
     sed -i 's/10\.13\.37\.[0-9]\+/192.168.3.x/g' "$f"
+    sed -i 's/10\.13\.37\.x/192.168.3.x/g' "$f"
     sed -i 's/192\.168\.42\.42/192.168.10.10/g' "$f"
     
     # Emails and Users
